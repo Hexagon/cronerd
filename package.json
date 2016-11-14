@@ -1,0 +1,38 @@
+{
+  "name": "cronerd",
+  "version": "0.1.0",
+  "description": "Web GUI process manager with cron-syntax capabilities.",
+  "author": "Hexagon <github.com/hexagon>",
+  "contributors": [{
+    "name": "Pehr Boman",
+    "email": "github.com/unkelpehr"
+  }],
+  "scripts": {
+    "test": "mocha"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hexagon/cronerd"
+  },
+  "bugs": {
+    "url": "https://github.com/hexagon/cronerd/issues"
+  },
+  "keywords": [
+    "cron",
+    "parser",
+    "croner",
+    "sheduler",
+    "timer",
+    "isomorphic"
+  ],
+  "dependencies": { 
+    "croner": "*",
+    "homedir": "*",
+    "xpipe": "*"
+  },
+  "devDependencies": {
+    "mocha": "*",
+    "should": "*"
+  },
+  "license": "MIT"
+}
