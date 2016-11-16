@@ -2,6 +2,11 @@
 var defaults = {
 	users: {
 		allowed: []
+	},
+	socket: {
+		path: '/tmp/cronerd-ipc.sock',
+		host: undefined,
+		port: undefined
 	}
 };
 
@@ -11,6 +16,8 @@ function config () {
 	// Look in /etc/cronerd/conf.d/*.json for configuration extensions
 
 	// Check that all entries exist in defaults! Soft throw if not (console.error())
+
+	return defaults;
 }
 
 module.exports = new config();

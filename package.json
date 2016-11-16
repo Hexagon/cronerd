@@ -1,7 +1,7 @@
 {
   "name": "cronerd",
   "version": "0.1.0",
-  "description": "Web GUI process manager with cron-syntax capabilities.",
+  "description": "Process manager with cron-syntax capabilities, web-gui and remote control capabilities.",
   "author": "Hexagon <github.com/hexagon>",
   "contributors": [{
     "name": "Pehr Boman",

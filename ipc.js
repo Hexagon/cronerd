@@ -8,12 +8,16 @@ const xpipe = require('xpipe'),
 
 	  serverDefaults = {
 	  	path: '/tmp/node-ipc.sock',
+	  	host: undefined,
+	  	port: undefined,
 	  	reconnect: 2000,
 	  	encoding: 'utf8'
 	  },
 
 	  clientDefaults = {
 	  	path: '/tmp/node-ipc.sock',
+	  	host: undefined,
+	  	port: undefined,
 	  	reconnect: -1,
 	  	encoding: 'utf8'
 	  };
@@ -27,7 +31,11 @@ IPC.prototype.listen = function (options) {
 		sockets = [],
 		reconnectTimer;
 
-	server.listen(xpipe.eq(opts.path));
+	if (opts.port) {
+		server.listen(opts.port, opts.host);	
+	} else {
+		server.listen(xpipe.eq(opts.path));	
+	}
 
 	server.on('connection', function (socket) { 
 		sockets.push(socket);
@@ -36,7 +44,7 @@ IPC.prototype.listen = function (options) {
 			try {
 				bus.emit('data', JSON.parse(data), socket) 
 			} catch (e) {
-				bus.emit('error', e);
+				bus.emit('failed', e);
 			}
 		});
 		socket.on('close', (socket) => { 
@@ -98,7 +106,12 @@ IPC.prototype.connect = function (options) {
 
 	socket.setEncoding(opts.encoding);
 
-	socket.connect(xpipe.eq(opts.path));
+	if (opts.port) {
+		socket.connect(opts.port, opts.host);	
+	} else {
+		socket.connect(xpipe.eq(opts.path));	
+	}
+	
 
 	socket.on('connect', (data) => bus.emit('connect', data) );
 	socket.on('data', (data) => {
