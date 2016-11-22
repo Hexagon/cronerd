@@ -1,31 +1,57 @@
-var 
-	config	= require("./config.js"),
+const
+	ipc 	= require("crocket"),
+	qbus 	= require("qbus"),
+
 	cronerd	= require("./cronerd.js"),
-	ipc 	= require('./ipc.js'),
-	help 	= require("./help.js");
+	help 	= require("./help.js"),
+
+	config	= require("./config.js"),
+	package = require("./package.json");
 
 function handle (command, payload) {
 
-	var request = function (topic, payload, callback) {
-		var client = new ipc()
-			.on('error', (e) => {
-				console.error('IPC Socket error: ', e);
+	var request = function (callback) {
+
+		var client = new ipc();
+		client.use(qbus);
+		client.connect( config.socket , function (e) {
+			
+			// IPC Connect eror
+			if(e) {
+				console.error('\nCould not communicate with host process, are cronerd started?\n');
+				console.error(e.toString());
 				client.close();
-			})
-			.on('connect', (s) => client.write({topic: topic, payload: payload}, function (e) {
-				if(e) {
-					console.error('Send error: ', e);
+				return;
+			}
+
+			// Handle communication errors
+			client.on('error', function (e) {
+				console.error('Invalid message received: ', e.toString());
+			});
+
+			// List jobs
+			if (command === 'list') {
+				client.emit('/jobs/list', payload, function (clientErr) {
+					// IPC Communication error
+					if(clientErr) {
+						console.error('Could not communicate with host process, data could not be sent.');
+						console.error(e.toString());
+						client.close();	
+					}
+				});
+				client.on('/jobs/list', function (data) {
+					console.log('Jobs:', data);
 					client.close();	
-				}
-			}) )
-			.on('data', (d) => {
-				if (d.topic === topic) {
-					callback(d.payload);
-					client.close();
-				}
-			})
-			//.connect({path: '/cronerd/main.sock'});
-			.connect( config.socket );
+				});
+
+			// Fallback
+			} else {
+				console.error('Invalid operation requested: ' + command + '.');
+				client.close();
+			}
+			
+
+		});
 	};
 
 	// Start master process
@@ -56,6 +82,7 @@ if (process.argv.length <= 2) {
 	return help();
 
 } else {
+	console.log(package.name + ' ' + package.version);	
 	handle(process.argv[2], process.argv.slice(3, process.argv.length));
 
 }

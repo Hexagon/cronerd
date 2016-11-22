@@ -28,7 +28,8 @@
   "dependencies": { 
     "croner": "*",
     "homedir": "*",
-    "xpipe": "*"
+    "crocket": "*",
+    "qbus": "*"
   },
   "devDependencies": {
     "mocha": "*",

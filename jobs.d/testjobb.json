@@ -1,0 +1,9 @@
+{
+	"name": "Testjobb",
+	"enabled": true,
+	"on": {
+		"cron": {
+			"pattern": "*/10 * * * * *"
+		}
+	}
+}
