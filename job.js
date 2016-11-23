@@ -1,10 +1,11 @@
 var 
-	extend = require("util")._extend,
 	croner = require("croner"),
-
+	clone = require("./clone.js"),
+	child_process = require('child_process'),
 	defaultConfig = {
 
 		name: "unnamed-process",
+		display: null,
 		description: "",
 
 		enabled: null,
@@ -13,16 +14,17 @@ var
 			forever: false,
 			event: null,
 			cron: {
-				pattern: undefined,
-				start: undefined,
-				end: undefined,
-				maxRuns: undefined
+				pattern: null,
+				start: null,
+				end: null,
+				maxRuns: null
 			}
 		},
 
 		process: {
 			mode: 'fork',		// fork, spawn, exec
-			command: '',		
+			command: '',
+			arguments: [],		
 			options: {
 								// regular options object for fork, spawn, exec etc. 
 								// Plus user: "username" sets uid, group: "groupname" sets gid
@@ -35,22 +37,48 @@ function job (path) {
 
 	var 
 		config,
-		valid = false,
+		errors = [],
 		controller,
 
 		reset = function () {
 			
 			config = undefined;
-			valid = false;
+			errors = [];
 			
 			controller && controller.stop();
 			controller = undefined;
 
 		},
 
+		raiseError = function (errStr) {
+			console.error('Configuration error: ' + errStr);
+			errors.push(errStr);
+		},
+
 		validateConfig = function () {
-			// Look for keys not in configDefaults, test pattern, test dates, etc.
-			return true;
+
+			var isValid = true;
+
+			// Check that forever is not combined with any of the others
+			if(config.on.forever && config.on.trigger || config.on.forever && config.on.cron && config.on.cron.pattern ) {
+				raiseError('on.forever cannot be combined with on.cron.pattern or on.trigger.');
+			}
+
+			// Check that cron pattern is valid
+			if ( config.on.cron && config.on.cron.pattern ) {
+				try {
+					var cronTest = croner( config.on.cron.pattern );
+				} catch (e) {
+					raiseError(e.toString());
+				}
+			}
+
+			// Check that process.mode is valid
+			if ( !child_process[config.process.mode] ) {
+				raiseError(config.process.mode + ' is not a valid entry for process.mode');
+			}
+
+			return errors.length > 0 ? false : true;
 		},
 
 		loadConfig = function () {
@@ -62,7 +90,8 @@ function job (path) {
 				console.error(e);
 				return false;
 			}
-			config = extend(extend({}, defaultConfig), tmpConfig);
+			var whut = clone(defaultConfig, {});
+			config = clone(tmpConfig, whut);
 			if ((valid = validateConfig())) {
 				console.log(config.name + ' loaded from ' + path + '.');
 			} else {
@@ -74,8 +103,8 @@ function job (path) {
 
 		schedule = function (self) {
 			if ( config.on.forever ) {
-				execute();
-			} else if ( config.on.cron.pattern ) {
+				self.execute();
+			} else if ( config.on.cron && config.on.cron.pattern ) {
 				var scheduler = croner( config.on.cron.pattern );
 				controller = scheduler.schedule(
 					{
@@ -88,17 +117,36 @@ function job (path) {
 			} else {
 				console.log(config.name + ' not scheduled.');
 			}
-		};
+		},
 
-	this.isValid = () => { return valid };
+		start = function (self) {
+			if(loadConfig()) {
+				schedule(self);
+			}
+		},
+
+		done = function (self, exitCode, stdout, stderr) {
+			if ( exitCode ) {
+				console.error(config.name + ' failed with exit code ' + exitCode);	
+				stdout && console.log(stdout);
+				stderr && console.error(stderr);
+			} else {
+				console.log(config.name + ' finished successfully');
+				stdout && console.log(stdout);
+				stderr && console.error(stderr);
+			}
+			if( config.on.forever ) {
+				setTimeout(() => self.execute(), 10);
+			}
+		}
+
+	this.isValid = () => { return errors.length > 0 ? false : true; };
 
 	this.reload = function () {
 
 		reset();
 
-		if(loadConfig()) {
-			schedule(this);
-		}
+		start(this);
 
 	};
 
@@ -106,7 +154,7 @@ function job (path) {
 
 	this.execute = function ( force ) {
 		
-		if ( !valid ) {
+		if ( !this.isValid() ) {
 			console.warn('Job invalid, could not start.');
 			return false;
 		}
@@ -121,10 +169,51 @@ function job (path) {
 		}
 
 		// Ok, do run!
-		console.log(config.name + 'Running...');
+		console.log(config.name + ' is starting.');
+
+		// Exec
+		if ( config.process.mode == 'exec') {
+			child_process.exec(config.process.command, config.process.options, (error, stdout, stderr) => {
+			  
+			  var exitCode = 0;
+
+			  if (error) {
+			    exitCode = error.code;
+			  }
+
+			  // exitCode, stdout, stderr
+			  done(this, exitCode, stdout, stderr);
+
+			});
+
+		// Spawn / Fork
+		} else {
+			try {
+				var p = child_process.spawn(config.process.command, config.process.arguments, config.process.options),
+					stdout = [],
+					stderr = [];
+
+				p.on("error", (err) => {
+					done(this, '1', "Process failed. ",  err);
+				});
+
+				p.stdout.on('data', (data) => {
+				  stdout.push(data);
+				});
+
+				p.stderr.on('data', (data) => {
+				  stderr.push(data);
+				});
+
+				p.on('exit', (code) => {
+				   done(this, code, stdout.join('\n'), stderr.join('\n'));
+				});
+			} catch (e) {
+				done(this, '1', "Process could not be started. ",  e);
+			}
+		}
 
 	};
-
 
 	this.reload();
 

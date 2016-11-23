@@ -1,0 +1,17 @@
+{
+	"name": "testjobb-fork",
+	"display": "Testjobb fork",
+	"enabled": false,
+	"on": {
+		"cron": {
+			"pattern": "* * * * * *",
+			"maxRuns": 3
+		}
+	},
+	"process": {
+		"mode": "fork",
+		"command": "node",
+		"arguments": ["test.js"],
+		"options": {}
+	}
+}

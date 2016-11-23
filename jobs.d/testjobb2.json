@@ -1,0 +1,19 @@
+{
+	"name": "testjobb-spawn",
+	"display": "Testjobb spawn",
+	"enabled": false,
+	"on": {
+		"cron": {
+			"pattern": "* * * * * *",
+			"maxRuns": 1
+		}
+	},
+	"process": {
+		"mode": "spawn",
+		"command": "npm",
+		"arguments": ["test"],
+		"options": {
+			"cwd": "../croner"
+		}
+	}
+}

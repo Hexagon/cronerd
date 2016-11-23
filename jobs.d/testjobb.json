@@ -1,9 +1,19 @@
 {
-	"name": "Testjobb",
-	"enabled": true,
+	"name": "testjobb-exec",
+	"display": "Lista filer i C:\\",
+	"enabled": false,
 	"on": {
+		"forever": false,
 		"cron": {
-			"pattern": "*/10 * * * * *"
+			"pattern": "* * * * * *",
+			"maxRuns": 3
+		}
+	},
+	"process": {
+		"mode": "exec",
+		"command": "dir",
+		"options": {
+			"cwd": "c:\\"
 		}
 	}
 }
