@@ -29,7 +29,8 @@
     "croner": "*",
     "homedir": "*",
     "crocket": "*",
-    "qbus": "*"
+    "qbus": "*",
+    "klon": "*"
   },
   "devDependencies": {
     "mocha": "*",

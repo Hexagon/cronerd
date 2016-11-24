@@ -1,0 +1,1 @@
+console.error('Process spawned, logging error for test purpose!');

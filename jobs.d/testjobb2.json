@@ -1,7 +1,7 @@
 {
 	"name": "testjobb-spawn",
 	"display": "Testjobb spawn",
-	"enabled": false,
+	"enabled": true,
 	"on": {
 		"cron": {
 			"pattern": "* * * * * *",
@@ -10,10 +10,10 @@
 	},
 	"process": {
 		"mode": "spawn",
-		"command": "npm",
-		"arguments": ["test"],
+		"command": "node",
+		"arguments": ["test-spawn.js"],
 		"options": {
-			"cwd": "../croner"
+			"cwd": "./test"
 		}
 	}
 }

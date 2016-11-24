@@ -1,7 +1,9 @@
 var 
 	croner = require("croner"),
-	clone = require("./clone.js"),
+	clone = require("klon"),
+	
 	child_process = require('child_process'),
+
 	defaultConfig = {
 
 		name: "unnamed-process",
@@ -11,14 +13,17 @@ var
 		enabled: null,
 
 		on: {
+
 			forever: false,
 			event: null,
+
 			cron: {
 				pattern: null,
 				start: null,
 				end: null,
 				maxRuns: null
 			}
+
 		},
 
 		process: {
@@ -60,7 +65,8 @@ function job (path) {
 			var isValid = true;
 
 			// Check that forever is not combined with any of the others
-			if(config.on.forever && config.on.trigger || config.on.forever && config.on.cron && config.on.cron.pattern ) {
+			if(		(config.on.forever && config.on.trigger) 
+				|| 	(config.on.forever && config.on.cron.pattern) ) {
 				raiseError('on.forever cannot be combined with on.cron.pattern or on.trigger.');
 			}
 
@@ -92,6 +98,7 @@ function job (path) {
 			}
 			var whut = clone(defaultConfig, {});
 			config = clone(tmpConfig, whut);
+			console.log('config ended up', config);
 			if ((valid = validateConfig())) {
 				console.log(config.name + ' loaded from ' + path + '.');
 			} else {
@@ -120,24 +127,26 @@ function job (path) {
 		},
 
 		start = function (self) {
-			if(loadConfig()) {
+			if(loadConfig() && config.enabled) {
 				schedule(self);
 			}
 		},
 
 		done = function (self, exitCode, stdout, stderr) {
+
 			if ( exitCode ) {
 				console.error(config.name + ' failed with exit code ' + exitCode);	
-				stdout && console.log(stdout);
-				stderr && console.error(stderr);
 			} else {
 				console.log(config.name + ' finished successfully');
-				stdout && console.log(stdout);
-				stderr && console.error(stderr);
 			}
+
+			stdout && console.log(stdout);
+			stderr && console.error(stderr);
+
 			if( config.on.forever ) {
 				setTimeout(() => self.execute(), 10);
 			}
+			
 		}
 
 	this.isValid = () => { return errors.length > 0 ? false : true; };

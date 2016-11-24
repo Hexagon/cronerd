@@ -1,7 +1,7 @@
 {
 	"name": "testjobb-fork",
 	"display": "Testjobb fork",
-	"enabled": false,
+	"enabled": true,
 	"on": {
 		"cron": {
 			"pattern": "* * * * * *",
@@ -11,7 +11,7 @@
 	"process": {
 		"mode": "fork",
 		"command": "node",
-		"arguments": ["test.js"],
+		"arguments": ["test/test-fork.js"],
 		"options": {}
 	}
 }
