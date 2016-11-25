@@ -31,12 +31,15 @@ jobs.prototype.reset = function () {
 
 jobs.prototype.reload = function () {
 
-	this.reset();
+	var directory = process.cwd().replace(/\\/g,'/').replace(/\/$/,'') + '/jobs.d/';
 	
-	fs.readdir('./jobs.d/', (err, files) => {
-	  files.forEach(file => inventory.push(new job('./jobs.d/' + file)) );
+	this.reset();
+
+	fs.readdir(directory, (err, files) => {
+	  if (err) return;
+	  files.forEach(file => { console.log(file); inventory.push(new job(directory + file)) } );
 	});
 
 };
 
-module.exports = new jobs();
+module.exports = jobs;

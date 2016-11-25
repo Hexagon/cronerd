@@ -2,11 +2,11 @@ const
 	ipc 	= require("crocket"),
 	qbus 	= require("qbus"),
 
-	cronerd	= require("./cronerd.js"),
+	cronerd	= require("../cronerd.js"),
 	help 	= require("./help.js"),
 
-	config	= require("./config.js"),
-	package = require("./package.json");
+	config	= require("../core/config.js"),
+	package = require("../../package.json");
 
 function handle (command, payload) {
 
@@ -49,9 +49,9 @@ function handle (command, payload) {
 				console.error('Invalid operation requested: ' + command + '.');
 				client.close();
 			}
-			
 
 		});
+
 	};
 
 	// Start master process
@@ -70,7 +70,6 @@ function handle (command, payload) {
 
 	// Fallback
 	} else {
-
 		return help();
 
 

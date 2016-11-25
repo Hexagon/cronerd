@@ -1,9 +1,10 @@
-var 
+const
+	child_process = require('child_process'),
 	croner = require("croner"),
 	clone = require("klon"),
-	
-	child_process = require('child_process'),
+	proc = require("./process.js"),
 
+	// Default configuration for a job
 	defaultConfig = {
 
 		name: "unnamed-process",
@@ -27,12 +28,13 @@ var
 		},
 
 		process: {
-			mode: 'fork',		// fork, spawn, exec
+			mode: 'fork',		// fork is specically for node processes, spawn is for shell-less processes, exec is for simple shell processes
+			restartMs: 500,		// Wait this many seconds before restarting the process, in case of mode = forever
 			command: '',
-			arguments: [],		
+			arguments: [],		// Only applicable for fork and spawn
 			options: {
-								// regular options object for fork, spawn, exec etc. 
-								// Plus user: "username" sets uid, group: "groupname" sets gid
+				// regular options object for fork, spawn, exec etc. 
+				// Plus user: "username" sets uid, group: "groupname" sets gid
 			} 
 		}
 
@@ -98,7 +100,6 @@ function job (path) {
 			}
 			var whut = clone(defaultConfig, {});
 			config = clone(tmpConfig, whut);
-			console.log('config ended up', config);
 			if ((valid = validateConfig())) {
 				console.log(config.name + ' loaded from ' + path + '.');
 			} else {
@@ -106,48 +107,7 @@ function job (path) {
 			}
 			return valid;
 			//metaData = readFule...
-		},
-
-		schedule = function (self) {
-			if ( config.on.forever ) {
-				self.execute();
-			} else if ( config.on.cron && config.on.cron.pattern ) {
-				var scheduler = croner( config.on.cron.pattern );
-				controller = scheduler.schedule(
-					{
-						startAt: config.on.cron.start,
-						stopAt: config.on.cron.end,
-						maxRuns: config.on.cron.maxRuns
-					},
-					() => self.execute()
-				);
-			} else {
-				console.log(config.name + ' not scheduled.');
-			}
-		},
-
-		start = function (self) {
-			if(loadConfig() && config.enabled) {
-				schedule(self);
-			}
-		},
-
-		done = function (self, exitCode, stdout, stderr) {
-
-			if ( exitCode ) {
-				console.error(config.name + ' failed with exit code ' + exitCode);	
-			} else {
-				console.log(config.name + ' finished successfully');
-			}
-
-			stdout && console.log(stdout);
-			stderr && console.error(stderr);
-
-			if( config.on.forever ) {
-				setTimeout(() => self.execute(), 10);
-			}
-			
-		}
+		};
 
 	this.isValid = () => { return errors.length > 0 ? false : true; };
 
@@ -155,7 +115,29 @@ function job (path) {
 
 		reset();
 
-		start(this);
+		if(loadConfig() && config.enabled) {
+
+			// Run forever
+			if ( config.on.forever ) {
+				this.execute();
+
+			// Run on cron pattern
+			} else if ( config.on.cron && config.on.cron.pattern ) {
+				var scheduler = croner( config.on.cron.pattern );
+				controller = scheduler.schedule({
+						startAt: config.on.cron.start,
+						stopAt: config.on.cron.end,
+						maxRuns: config.on.cron.maxRuns
+					},
+					() => this.execute()
+				);
+
+			// Not scheduled
+			} else {
+				console.log(config.name + ' not scheduled.');
+
+			}
+		}
 
 	};
 
@@ -163,11 +145,11 @@ function job (path) {
 
 	this.execute = function ( force ) {
 		
+		// Run some sanity checks before forking away
 		if ( !this.isValid() ) {
 			console.warn('Job invalid, could not start.');
 			return false;
 		}
-
 		if( !config.enabled ) {
 			if ( force ) {
 				console.log('Forcefully starting disabled job.');
@@ -177,50 +159,44 @@ function job (path) {
 			}
 		}
 
-		// Ok, do run!
+		// Everything seems to be in order, go on forking
 		console.log(config.name + ' is starting.');
+		proc(config.process, (exitCode, stdout, stderr, error) => {
+			
+			// If error is defined, this indicates failure while forking
+			if (error) {
+				console.log(config.name + ' could not start. Error: ' , error);	
 
-		// Exec
-		if ( config.process.mode == 'exec') {
-			child_process.exec(config.process.command, config.process.options, (error, stdout, stderr) => {
-			  
-			  var exitCode = 0;
+			// An exit code other than 0 indicates that the child process failed in one way or another
+			} else if (exitCode !== 0) {
+				console.log(config.name + ' exited with code ' + exitCode + '.');
+				if (stdout && stdout != "") {
+					console.log('stdout:');
+					console.log(stdout);
+				}
+				if (stderr && stderr != "") {
+					console.log('stderr:');
+					console.log(stderr);
+				}
 
-			  if (error) {
-			    exitCode = error.code;
-			  }
+			// Content in stderr calls for a warning
+			} else {
 
-			  // exitCode, stdout, stderr
-			  done(this, exitCode, stdout, stderr);
+				if (stderr && stderr != "") {
+					console.warn(config.name + ' placed information in stderr: ');
+					console.warn(stderr);
+				}
 
-			});
+				console.log(config.name + ' finished successfully.');
 
-		// Spawn / Fork
-		} else {
-			try {
-				var p = child_process.spawn(config.process.command, config.process.arguments, config.process.options),
-					stdout = [],
-					stderr = [];
-
-				p.on("error", (err) => {
-					done(this, '1', "Process failed. ",  err);
-				});
-
-				p.stdout.on('data', (data) => {
-				  stdout.push(data);
-				});
-
-				p.stderr.on('data', (data) => {
-				  stderr.push(data);
-				});
-
-				p.on('exit', (code) => {
-				   done(this, code, stdout.join('\n'), stderr.join('\n'));
-				});
-			} catch (e) {
-				done(this, '1', "Process could not be started. ",  e);
 			}
-		}
+
+			// Instantly restart, if needed
+			if( config.on.forever ) {
+				setTimeout(() => this.execute(), config.restartMs);
+			}
+
+		});
 
 	};
 

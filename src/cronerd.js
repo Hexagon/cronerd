@@ -1,11 +1,14 @@
 var ipc = require("crocket"),
 	qbus = require("qbus"),
-	jobs = require('./jobs.js'),
-	config = require('./config.js');
+
+	Jobs = require('./core/jobs.js'),
+
+	config = require('./core/config.js');
 
 function cronerd() {
 
 	var server = new ipc(),
+		jobs = new Jobs(),
 		address;
 
 	// Create a printable version of the socket address
