@@ -3,6 +3,10 @@
 // - /etc/cronerd/conf.d/*.json, 
 // - <working directory>/conf.d/*.json, 
 // - <home directory>/conf.d/*.json, 
+var ps = require('bunyan-prettystream'),
+	psout = new ps();
+
+psout.pipe(process.stdout);
 
 var defaults = {
 	users: {
@@ -13,6 +17,23 @@ var defaults = {
 		host: undefined,
 		port: undefined,
 		reconnect: 500
+	},
+	log: {
+		name: 'cronerd',
+		streams: [
+			{
+				level: 'debug',
+				type: 'raw',
+				stream: psout       // log INFO and above to stdout
+			},
+			{
+				level: 'warn',
+				path: 'logs/cronerd-error.log'  // log ERROR and above to a file
+			}
+		]
+	},
+	web: {
+		port: 8080
 	}
 };
 

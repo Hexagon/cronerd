@@ -5,7 +5,7 @@
 	"on": {
 		"forever": false,
 		"cron": {
-			"pattern": "* * * * * *",
+			"pattern": "0 * * * * *",
 			"maxRuns": 3
 		}
 	},

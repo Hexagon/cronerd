@@ -1,14 +1,18 @@
 var ipc = require("crocket"),
 	qbus = require("qbus"),
 
-	Jobs = require('./core/jobs.js'),
+	config = require('./core/config.js'),
 
-	config = require('./core/config.js');
+	log = require('bunyan').createLogger(config.log),
+
+	jobs = require('./core/jobs.js'),
+	jobs = new jobs(log.child({section: 'core/jobs'})),
+
+	web = require('./web/index.js')(log, jobs);
 
 function cronerd() {
 
 	var server = new ipc(),
-		jobs = new Jobs(),
 		address;
 
 	// Create a printable version of the socket address

@@ -40,12 +40,33 @@ const
 
 	};
 
-function job (path) {
+function job (path, logger) {
 
 	var 
 		config,
 		errors = [],
+		scheduler,
 		controller,
+		log = logger.child({section: 'core/job'}),
+
+		state = {
+			
+			state: 'uninitialized',
+
+			started: null,
+			finished: null,
+
+			next: null,
+			
+			runs: 0,
+			averageRuntime: null,
+
+			logs: {
+				last: null,
+				lastFailed: null
+			}
+
+		},
 
 		reset = function () {
 			
@@ -58,7 +79,7 @@ function job (path) {
 		},
 
 		raiseError = function (errStr) {
-			console.error('Configuration error: ' + errStr);
+			log.error('Configuration error: ' + errStr);
 			errors.push(errStr);
 		},
 
@@ -93,24 +114,25 @@ function job (path) {
 			try {
 				var tmpConfig = require(path);
 			} catch (e) {
-				console.log('Job at ' + path + ' is not loaded due to invalid JSON.');
-				console.log('Detailed error:');
-				console.error(e);
+				log.error('Job at ' + path + ' is not loaded due to invalid JSON.', 'Detailed error:', e);
 				return false;
 			}
 			var whut = clone(defaultConfig, {});
 			config = clone(tmpConfig, whut);
 			if ((valid = validateConfig())) {
-				console.log(config.name + ' loaded from ' + path + '.');
+				log.info('Configuration loaded from ' + path + '.');
+				log = log.child({job: config.name});
 			} else {
-				console.log(config.name + ' loaded, but will not start due to invalid configuration.');
+				log.warn('Configuration loaded, but will not start due to invalid configuration.');
 			}
 			return valid;
 			//metaData = readFule...
 		};
 
 	this.isValid = () => { return errors.length > 0 ? false : true; };
-
+	this.getConfig = () => { return config; };
+	this.getState = () => { return state; };
+	
 	this.reload = function () {
 
 		reset();
@@ -119,22 +141,22 @@ function job (path) {
 
 			// Run forever
 			if ( config.on.forever ) {
-				this.execute();
+				this.execute(false, 'forever');
 
 			// Run on cron pattern
 			} else if ( config.on.cron && config.on.cron.pattern ) {
-				var scheduler = croner( config.on.cron.pattern );
+				scheduler = croner( config.on.cron.pattern );
 				controller = scheduler.schedule({
 						startAt: config.on.cron.start,
 						stopAt: config.on.cron.end,
 						maxRuns: config.on.cron.maxRuns
 					},
-					() => this.execute()
+					() => this.execute(false, 'scheduler')
 				);
 
 			// Not scheduled
 			} else {
-				console.log(config.name + ' not scheduled.');
+				log.info(' not scheduled.');
 
 			}
 		}
@@ -143,57 +165,82 @@ function job (path) {
 
 	this.stop = () => reset();
 
-	this.execute = function ( force ) {
+	this.execute = function ( force, starter ) {
 		
 		// Run some sanity checks before forking away
 		if ( !this.isValid() ) {
-			console.warn('Job invalid, could not start.');
+			log.warn('Job invalid, could not start.');
 			return false;
 		}
 		if( !config.enabled ) {
 			if ( force ) {
-				console.log('Forcefully starting disabled job.');
+				log.info('Forcefully starting disabled job.');
 			} else {
-				console.warn('Job disabled, could not start.');
+				log.warn('Job disabled, could not start.');
 				return false;	
 			}
 		}
 
 		// Everything seems to be in order, go on forking
-		console.log(config.name + ' is starting.');
+		log.info('Started by ' + starter);
+
+		state.started = new Date();
+		state.finished = null;
+		state.state = 'running';
+
 		proc(config.process, (exitCode, stdout, stderr, error) => {
-			
+			state.finished = new Date();
+			if (state.runs > 0) {
+				state.averageRuntime = ((state.averageRuntime * state.runs) + (state.finished - state.started)) / state.runs + 1;
+			} else {
+				state.averageRuntime = (state.finished - state.started);
+			}
+			state.runs++;
+			state.logs.last = { stdout: stdout, stderr: stderr, error: error };
+
 			// If error is defined, this indicates failure while forking
 			if (error) {
-				console.log(config.name + ' could not start. Error: ' , error);	
+				log.info('Could not start. Error: ' , error);
+				state.state = 'fatal';
+				state.logs.lastFailed = { at: state.started, stdout: stdout, stderr: stderr, error: error };
 
 			// An exit code other than 0 indicates that the child process failed in one way or another
 			} else if (exitCode !== 0) {
-				console.log(config.name + ' exited with code ' + exitCode + '.');
+				log.error(' exited with code ' + exitCode + '.');
+				state.state = 'error';
+				state.logs.lastFailed = { at: state.started, stdout: stdout, stderr: stderr, error: error };
 				if (stdout && stdout != "") {
-					console.log('stdout:');
-					console.log(stdout);
+					log.error('stdout:');
+					log.error(stdout);
 				}
 				if (stderr && stderr != "") {
-					console.log('stderr:');
-					console.log(stderr);
+					log.error('stderr:');
+					log.error(stderr);
 				}
 
 			// Content in stderr calls for a warning
 			} else {
 
+				state.state = 'success';
+
 				if (stderr && stderr != "") {
-					console.warn(config.name + ' placed information in stderr: ');
-					console.warn(stderr);
+					state.state = 'warning';
+					log.warn('Placed information in stderr: ', stderr);
 				}
 
-				console.log(config.name + ' finished successfully.');
+				log.info('Finished successfully.');
 
 			}
 
 			// Instantly restart, if needed
 			if( config.on.forever ) {
-				setTimeout(() => this.execute(), config.restartMs);
+				setTimeout(() => this.execute(false, forever), config.restartMs);
+			}
+
+			// Log next run
+			if( starter=='scheduler' ) {
+				state.next = scheduler.next();
+				log.info('Next scheduled run is at ', state.next);
 			}
 
 		});

@@ -30,7 +30,10 @@
     "homedir": "*",
     "crocket": "*",
     "qbus": "*",
-    "klon": "*"
+    "klon": "*",
+    "restify": "*",
+    "bunyan": "*",
+    "bunyan-prettystream": "*"
   },
   "devDependencies": {
     "mocha": "*",
