@@ -154,6 +154,9 @@ function job (path, logger) {
 					() => this.execute(false, 'scheduler')
 				);
 
+				state.state = 'scheduled';
+				state.next = scheduler.next();
+
 			// Not scheduled
 			} else {
 				log.info(' not scheduled.');
@@ -239,8 +242,15 @@ function job (path, logger) {
 
 			// Log next run
 			if( starter=='scheduler' ) {
+
 				state.next = scheduler.next();
-				log.info('Next scheduled run is at ', state.next);
+				if(state.next) {
+					log.info('Next scheduled run is at ', state.next);	
+				} else {
+					state.state = 'expired';
+					log.info('Job has expired');
+				}
+
 			}
 
 		});

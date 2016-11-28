@@ -15,8 +15,7 @@ var defaults = {
 	socket: {
 		path: "/tmp/cronerd-ipc.sock",
 		host: undefined,
-		port: undefined,
-		reconnect: 500
+		port: undefined
 	},
 	log: {
 		name: 'cronerd',

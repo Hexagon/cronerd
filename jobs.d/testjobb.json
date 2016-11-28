@@ -1,12 +1,11 @@
 {
 	"name": "testjobb-exec",
-	"display": "Lista filer i C:\\",
+	"description": "Lista filer i C:\\",
 	"enabled": true,
 	"on": {
 		"forever": false,
 		"cron": {
-			"pattern": "0 * * * * *",
-			"maxRuns": 3
+			"pattern": "0 * * * * *"
 		}
 	},
 	"process": {
