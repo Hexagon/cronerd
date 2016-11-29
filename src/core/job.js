@@ -3,6 +3,7 @@ const
 	croner = require("croner"),
 	clone = require("klon"),
 	proc = require("./process.js"),
+	bus = require("./bus.js"),
 	log = require("./log.js")("job"),
 
 	// Default configuration for a job
@@ -120,7 +121,7 @@ function job (path) {
 			var whut = clone(defaultConfig, {});
 			config = clone(tmpConfig, whut);
 			if ((valid = validateConfig())) {
-				log.info('Configuration loaded from ' + path + '.');
+				log.info('%s: Configuration loaded from %s.', config.name, path);
 				log = log.child({job: config.name});
 			} else {
 				log.warn('Configuration loaded, but will not start due to invalid configuration.');
@@ -159,7 +160,7 @@ function job (path) {
 
 			// Not scheduled
 			} else {
-				log.info(' not scheduled.');
+				log.info('%s: not scheduled.', config.name);
 
 			}
 		}
@@ -172,20 +173,20 @@ function job (path) {
 		
 		// Run some sanity checks before forking away
 		if ( !this.isValid() ) {
-			log.warn('Job invalid, could not start.');
+			log.warn('%s: Job invalid, could not start.', config.name);
 			return false;
 		}
 		if( !config.enabled ) {
 			if ( force ) {
-				log.info('Forcefully starting disabled job.');
+				log.info('%s: Forcefully starting disabled job.', config.name);
 			} else {
-				log.warn('Job disabled, could not start.');
+				log.warn('%s: Job disabled, could not start.', config.name);
 				return false;	
 			}
 		}
 
 		// Everything seems to be in order, go on forking
-		log.info('Started by ' + starter);
+		log.info('%s: Started by %s', config.name, starter);
 
 		state.started = new Date();
 		state.finished = null;
@@ -203,13 +204,13 @@ function job (path) {
 
 			// If error is defined, this indicates failure while forking
 			if (error) {
-				log.info('Could not start. Error: ' , error);
+				log.info('%s Could not start. Error: %s', config.name , error);
 				state.state = 'fatal';
 				state.logs.lastFailed = { at: state.started, stdout: stdout, stderr: stderr, error: error };
 
 			// An exit code other than 0 indicates that the child process failed in one way or another
 			} else if (exitCode !== 0) {
-				log.error(' exited with code ' + exitCode + '.');
+				log.error('%s exited with code %s', config.name, exitCode);
 				state.state = 'error';
 				state.logs.lastFailed = { at: state.started, stdout: stdout, stderr: stderr, error: error };
 				if (stdout && stdout != "") {
@@ -228,10 +229,10 @@ function job (path) {
 
 				if (stderr && stderr != "") {
 					state.state = 'warning';
-					log.warn('Placed information in stderr: ', stderr);
+					log.warn('%s: Placed information in stderr: %s', config.name, stderr);
 				}
 
-				log.info('Finished successfully.');
+				log.info('%s: Finished successfully.', config.name);
 
 			}
 
@@ -245,10 +246,10 @@ function job (path) {
 
 				state.next = scheduler.next();
 				if(state.next) {
-					log.info('Next scheduled run is at ', state.next);	
+					log.info('%s: Next scheduled run is at %s', config.name, state.next);	
 				} else {
 					state.state = 'expired';
-					log.info('Job has expired');
+					log.info('%s: Job has expired.',config.name);
 				}
 
 			}

@@ -2,6 +2,8 @@ const
 	ipc 	= require("crocket"),
 	qbus 	= require("qbus"),
 
+	bus 	= require("./core/bus.js"),
+
 	help 	= require("./cli/help.js"),
 
 	config	= require("./core/config.js");
@@ -21,13 +23,17 @@ function remote (command, payload, callback) {
 
 		// Handle communication errors
 		client.on('error', function (e) {
-			callback && callback('Invalid response', e);
-			client.close();
+			callback && callback('Invalid response', e.stack);
+			if (payload && payload.retain !== true) {
+				client.close();
+			}
 		});
 
 		client.on(command, function (data) {
+			if (!payload || (payload && payload.retain !== true)) {
+				client.close();
+			} 
 			callback && callback(undefined, data);
-			client.close();	
 		});
 
 		client.emit(command, payload, function (clientErr) {
@@ -35,7 +41,6 @@ function remote (command, payload, callback) {
 			if(clientErr) {
 				callback && callback('Could not communicate with host process, data could not be sent.', clientErr);
 				client.close();
-				return
 			}
 		});
 
@@ -72,7 +77,20 @@ if ( command == "list" ) {
 			console.log('    Next:\t' + job.state.next + '\n');
 		});
 	});
+} else if ( command == "tail" ) {
 
+	console.log('Reading server log in real time, press CTRL+C to exit.');
+
+	remote("/log/pretty", { retain: true }, function (error, response) {
+
+		if (error) {
+			console.error(error);
+			response && console.error(response);
+		}
+
+		console.log(response.trim('\n'));
+
+	});
 } else if ( command == "reload" ) {
 
 	remote("/jobs/reload", undefined, function (error, response) {
@@ -107,14 +125,13 @@ if ( command == "list" ) {
 	} else if ( payload[0] == "reload" ) {
 
 
-
 	} else if ( pauload[0] == "status" ) {
 
 	}
 
 
 } else {
-	console.log('Unknown command: ' + command);
+	console.log('\nUnknown command: ' + command);
 	return help();
 
 }

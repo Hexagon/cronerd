@@ -1,5 +1,6 @@
 var config = require('../core/config.js'),
 	log = require("../core/log.js")("ipc"),
+	bus = require("../core/bus.js"),
 	ipc = require("crocket"),
 	qbus = require("qbus");
 
@@ -34,7 +35,6 @@ function ipcHandler(jobs) {
 	// Set up handlers!
 
 	server.on('/jobs/list', function (socket) {
-		console.log(arguments)
 		// Respond!
 		server.emit('/jobs/list', jobs.list(), socket);
 	});
@@ -45,7 +45,20 @@ function ipcHandler(jobs) {
 	});
 
 	server.on('/job/start', function(params, socket) {
-		
+
+	});
+
+	server.on('/log/pretty', function(params, socket) {
+		var handler;
+		handler = function(message) {
+				if (socket.writable) {
+					server.emit('/log/pretty', message.message, socket);
+				} else {
+					// Socket no longer writable, kill listener
+					//bus.off('/log/pretty', handler);
+				}
+			};
+		bus.on('/log/pretty', handler);
 	});
 }
 

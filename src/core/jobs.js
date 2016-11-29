@@ -2,8 +2,7 @@ var
 	qbus = require("qbus"),
 	fs = require("fs"),
 	job = require("./job.js"),
-	bus = new qbus(),
-
+	bus = require("./bus.js"),
 	inventory = {};
 
 function jobs () {
