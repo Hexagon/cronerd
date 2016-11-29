@@ -3,6 +3,7 @@ const
 	croner = require("croner"),
 	clone = require("klon"),
 	proc = require("./process.js"),
+	log = require("./log.js")("job"),
 
 	// Default configuration for a job
 	defaultConfig = {
@@ -40,14 +41,13 @@ const
 
 	};
 
-function job (path, logger) {
+function job (path) {
 
 	var 
 		config,
 		errors = [],
 		scheduler,
 		controller,
-		log = logger.child({section: 'core/job'}),
 
 		state = {
 			

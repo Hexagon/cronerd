@@ -1,8 +1,9 @@
-var config = require('./core/config.js'),
+var config 	= require('./core/config.js'),
 
-	log = require('bunyan').createLogger(config.log),
+	jobs 	= require('./core/jobs.js'),
+	
+	web 	= require('./web/index.js'),
+	ipc 	= require('./ipc/index.js');
 
-	jobs = require('./core/jobs.js').init(log.child({section: 'core/jobs'})),
-
-	web = require('./web/index.js')(log, jobs),
-	ipc = require('./ipc/index.js')(log, jobs);
+web(jobs);
+ipc(jobs);

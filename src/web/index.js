@@ -1,8 +1,8 @@
 var restify = require('restify'),
+	log = require("../core/log.js")("web"),
 	config = require('../core/config.js');
 
-function web(log, jobs) {
-	log = log.child({module: 'web'});
+function web(jobs) {
 
 	var server = restify.createServer();
 

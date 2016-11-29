@@ -8,18 +8,12 @@ var
 
 function jobs () {
 	
-	this.log = console;
 	// Look in /etc/cronerd/jobs.d/ for jobs, default user root, overridable by job configuration
 	// Look in every enabled users home directory for .croner.jobs.d/ for user jobs, force user to username
 
 	// Inventory of all jobs
 	// inventoruy
 	this.reload();
-
-	this.init = function (log) {
-		this.log = log;
-		return this;
-	}
 	
 	return this;
 }
@@ -47,12 +41,12 @@ jobs.prototype.reload = function () {
 	  	if (inventory[path]) {
 	  		inventory[path].reload();
 	  	} else {
-	  		inventory[path] = new job(directory + file, this.log); 
+	  		inventory[path] = new job(directory + file); 
 	  	}
 	  } );
 	});
 
-	return true;
+	return inventory;
 
 };
 

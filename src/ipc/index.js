@@ -1,9 +1,9 @@
 var config = require('../core/config.js'),
+	log = require("../core/log.js")("ipc"),
 	ipc = require("crocket"),
 	qbus = require("qbus");
 
-function ipcHandler(log, jobs) {
-	log = log.child({module: 'ipc'});
+function ipcHandler(jobs) {
 
 	var server = new ipc(),
 		address;
@@ -26,21 +26,27 @@ function ipcHandler(log, jobs) {
 		log.info('IPC server listening at ' + address.toString() );
 	});
 
-	// Reqest for all jobs received
-	server.on('/jobs/list', function (d, socket) {
-		// Respond!
-		server.emit('/jobs/list', jobs.list(), socket);
-	});
-
-	server.on('/jobs/reload', function (d, socket) {
-		// Respond!
-		server.emit('/jobs/reload', jobs.reload(), socket);
-	});
-
+	// Handle errors
 	server.on('error', function (e) {
 		log.error('Communication error: ' + e.toString());
 	});
 
+	// Set up handlers!
+
+	server.on('/jobs/list', function (socket) {
+		console.log(arguments)
+		// Respond!
+		server.emit('/jobs/list', jobs.list(), socket);
+	});
+
+	server.on('/jobs/reload', function (socket) {
+		// Respond!
+		server.emit('/jobs/reload', jobs.reload(), socket);
+	});
+
+	server.on('/job/start', function(params, socket) {
+		
+	});
 }
 
 module.exports = ipcHandler;

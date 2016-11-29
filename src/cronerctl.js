@@ -43,54 +43,79 @@ function remote (command, payload, callback) {
 
 }
 
-if (process.argv.length <= 2) {
+// No arguments passed, print help
+if (process.argv.length <= 2)
 	return help();
 
-} else {
 
-	var command = process.argv[2],
-		payload = process.argv.slice(3, process.argv.length);
+var command = process.argv[2],
+	payload = process.argv.slice(3, process.argv.length);
+
+if ( command == "list" ) {
+
+	remote("/jobs/list", undefined, function (error, response) {
+
+		if (error) {
+			console.error(error);
+			response && console.error(response);
+			return;
+		}
+
+		// Show list
+		response.forEach( (job) => {
+			console.log('\n'+ job.config.name);
+			job.config.description && console.log(job.config.description);
+			console.log('\n    Enabled:\t' + job.config.enabled);
+			console.log('    State:\t' + job.state.state);
+			console.log('    Started:\t' + job.state.started);
+			console.log('    Finished:\t' + job.state.finished);
+			console.log('    Next:\t' + job.state.next + '\n');
+		});
+	});
+
+} else if ( command == "reload" ) {
+
+	remote("/jobs/reload", undefined, function (error, response) {
+		if (error) {
+			console.error(error);
+			response && console.error(response);
+			return;
+		}
+		console.log('\nJobs reloaded from disk, found:\n')	;
+		Object.keys(response).forEach(key => console.log('    %s',key));
+	});
+
+} else if ( command == "job" && payload.length > 1 ) {
 	
-	if ( command == "list" ) {
+	var jobName = payload[1];
 
-		remote("/jobs/list", undefined, function (error, response) {
+	if( payload[0] == "start" ) {
+		remote("/job/start", { name: jobName }, function (error, response) {
 			if (error) {
-				console.error(error);
-				response && console.error(response);
+				console.error('%s could not be started.', jobName);
+				console.error('Error: ' + error);
+				response && console.error('Output: ' + response);
 				return;
 			}
-
-			// Show list
-			response.forEach( (job) => {
-				console.log('');
-				console.log(job.config.name);
-				job.config.description && console.log(job.config.description);
-				console.log('');
-				console.log('    Enabled:\t' + job.config.enabled);
-				console.log('    State:\t' + job.state.state);
-				console.log('    Started:\t' + job.state.started);
-				console.log('    Finished:\t' + job.state.finished);
-				console.log('    Next:\t' + job.state.next);
-				console.log('');
-			});
+			console.log('%s is started, average run time is about %s seconds.')	;
+			Object.keys(response).forEach(key => console.log('    %s',key));
 		});
 
-	} else if ( command == "reload" ) {
+	} else if ( payload[0] == "force" ) {
 
-		remote("/jobs/reload", undefined, function (error, response) {
-			if (error) {
-				console.error(error);
-				response && console.error(response);
-				return;
-			}
-			console.log('Jobs reloaded from disk');
-		});
 
-	} else {
-		console.log('Unknown command: ' + command);
-		return help();
+	} else if ( payload[0] == "reload" ) {
+
+
+
+	} else if ( pauload[0] == "status" ) {
 
 	}
+
+
+} else {
+	console.log('Unknown command: ' + command);
+	return help();
 
 }
 
