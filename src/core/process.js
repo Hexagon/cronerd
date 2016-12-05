@@ -6,7 +6,7 @@ module.exports = function (config, callback) {
 	// Exec
 	if ( config.mode == 'exec') {
 
-		child_process.exec(config.command, config.options, (error, stdout, stderr) => {
+		return child_process.exec(config.command, config.options, (error, stdout, stderr) => {
 		  
 		  var exitCode = error ? error.code : 0;
 
@@ -39,7 +39,10 @@ module.exports = function (config, callback) {
 			   callback(code, stdout.join('\n'), stderr.join('\n'));
 			});
 
+			return p;
+
 		} catch (e) {
+			
 			// Exit code 71: Can not fork
 			callback(71, "", "",  e);
 

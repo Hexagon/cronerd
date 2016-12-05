@@ -27,9 +27,6 @@
   ],
   "dependencies": { 
     "croner": "*",
-    "homedir": "*",
-    "crocket": "*",
-    "qbus": "*",
     "klon": "*",
     "restify": "*",
     "bunyan": "*",

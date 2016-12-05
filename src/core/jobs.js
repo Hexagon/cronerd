@@ -2,7 +2,6 @@ var
 	qbus = require("qbus"),
 	fs = require("fs"),
 	job = require("./job.js"),
-	bus = require("./bus.js"),
 	inventory = {};
 
 function jobs () {
@@ -22,7 +21,7 @@ jobs.prototype.list = function () {
 		job;
 	inventory && Object.keys(inventory).forEach((path) => {
 		job = inventory[path];
-		retVal.push({ config: job.getConfig(), state: job.getState() })
+		retVal.push({ config: job.config, state: job.state })
 	});
 	return retVal;
 };
@@ -32,7 +31,6 @@ jobs.prototype.reload = function () {
 	var directory = process.cwd().replace(/\\/g,'/').replace(/\/$/,'') + '/jobs.d/';
 
 	// ToDo: Remove disappeared jobs?
-
 	fs.readdir(directory, (err, files) => {
 	  if (err) return;
 	  files.forEach( file => {
@@ -48,5 +46,16 @@ jobs.prototype.reload = function () {
 	return inventory;
 
 };
+
+jobs.prototype.get = function (name) {
+	var found = false;
+	inventory && Object.keys(inventory).forEach((path) => {
+		jobConfig = inventory[path].config;
+		if (jobConfig.name == name) {
+			return found = inventory[path];
+		}
+	});
+	return found;
+}
 
 module.exports = new jobs();

@@ -1,7 +1,7 @@
 {
 	"name": "testjobb-exec",
 	"description": "Lista filer i C:\\",
-	"enabled": true,
+	"enabled": false,
 	"on": {
 		"forever": false,
 		"cron": {

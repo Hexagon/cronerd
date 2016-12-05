@@ -8,11 +8,6 @@ var defaults = {
 	users: {
 		allowed: "*"
 	},
-	socket: {
-		path: "/tmp/cronerd-ipc.sock",
-		host: undefined,
-		port: undefined
-	},
 	log: {
 		name: 'cronerd',
 		streams: [
@@ -23,6 +18,7 @@ var defaults = {
 		]
 	},
 	web: {
+		name: 'cronerd',
 		port: 8080
 	}
 };

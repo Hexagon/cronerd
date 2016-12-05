@@ -1,10 +1,10 @@
 {
 	"name": "testjobb-spawn",
 	"display": "Testjobb spawn",
-	"enabled": true,
+	"enabled": false,
 	"on": {
 		"cron": {
-			"pattern": "*/2 * * * * *"
+			"pattern": "*/5 * * * * *"
 		}
 	},
 	"process": {
