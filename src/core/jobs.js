@@ -30,7 +30,7 @@ jobs.prototype.reload = function () {
 
 	var directory = process.cwd().replace(/\\/g,'/').replace(/\/$/,'') + '/jobs.d/';
 
-	// ToDo: Remove disappeared jobs?
+	// Reload all jobs found in directory
 	fs.readdir(directory, (err, files) => {
 	  if (err) return;
 	  files.forEach( file => {
@@ -43,19 +43,21 @@ jobs.prototype.reload = function () {
 	  } );
 	});
 
+	// Remove orphaned jobs
+	
+
 	return inventory;
 
 };
 
 jobs.prototype.get = function (name) {
-	var found = false;
 	inventory && Object.keys(inventory).forEach((path) => {
 		jobConfig = inventory[path].config;
 		if (jobConfig.name == name) {
-			return found = inventory[path];
+			return inventory[path];
 		}
 	});
-	return found;
+	return false;
 }
 
 module.exports = new jobs();

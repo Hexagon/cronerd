@@ -4,7 +4,7 @@ var log = require("../core/log.js")("api-routes");
 
 module.exports = function (server, jobs, respond) {
 
-	server.get('/jobs/list', function(req, res, next) {
+	server.get('/api/jobs/list', function(req, res, next) {
 		let result = jobs.list();
 		if( result ) {
 			respond(res, next, 200, result);
@@ -13,7 +13,7 @@ module.exports = function (server, jobs, respond) {
 		}
 	});
 
-	server.get('/jobs/reload', function(req, res, next) {
+	server.get('/api/jobs/reload', function(req, res, next) {
 		let result = jobs.reload();
 		if( result ) {
 			respond(res, next, 200, result);
@@ -22,7 +22,7 @@ module.exports = function (server, jobs, respond) {
 		}
 	});
 
-	server.get('/timestamp', function(req, res, next) {
+	server.get('/api/timestamp', function(req, res, next) {
 		var result = {
 			server: new Date()
 		}
@@ -32,7 +32,7 @@ module.exports = function (server, jobs, respond) {
 		respond(res, next, 200, result);
 	});
 
-	server.get('/job/reload', function(req, res, next) {
+	server.get('/api/job/reload', function(req, res, next) {
 		
 		if (!req.params.name)
 			return respond(res, next, 500, null, "No job specified." );
@@ -51,7 +51,7 @@ module.exports = function (server, jobs, respond) {
 		}
 	});
 
-	server.get('/job/start', function(req, res, next) {
+	server.get('/api/job/start', function(req, res, next) {
 		
 		if (!req.params.name)
 			return respond(res, next, 500, null, "No job specified." );
@@ -73,7 +73,7 @@ module.exports = function (server, jobs, respond) {
 		}
 	});
 
-	server.get('/job/force', function(req, res, next) {
+	server.get('/api/job/force', function(req, res, next) {
 
 		if (!req.params.name)
 			return respond(res, next, 500, null, "No job specified." );
@@ -95,7 +95,7 @@ module.exports = function (server, jobs, respond) {
 		}
 	});
 
-	server.get('/job/status', function(req, res, next) {
+	server.get('/api/job/status', function(req, res, next) {
 		
 		if (!req.params.name)
 			return respond(res, next, 500, null, "No job specified." );
@@ -109,7 +109,7 @@ module.exports = function (server, jobs, respond) {
 		}
 	});
 
-	server.get('/job/config', function(req, res, next) {
+	server.get('/api/job/config', function(req, res, next) {
 		var job = jobs.get(req.params.name),
 			status;
 		if ( job ) {

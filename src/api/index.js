@@ -1,21 +1,13 @@
 "use strict";
 
-var restify = require('restify'),
-	log = require("../core/log.js")("api"),
+var log = require("../core/log.js")("api"),
 	routes = require("./routes.js"),
-	config = require('../core/config.js');
+	config = require("../core/config.js");
 
-// REST Router
-function api(jobs) {
+function api(jobs, server) {
 
-	// Create restify server
-	var server = restify.createServer({
-			name: config.web.name,
-			log: log
-		}),
-
-		// Interface for creating well formed REST responses
-		respond = function (res, next, code, data, message) {
+	// Interface for creating well formed REST responses
+	var respond = function (res, next, code, data, message) {
 
 			var codeText;
 
@@ -36,17 +28,13 @@ function api(jobs) {
 			next();
 		};
 
-	// Append middleware
-	server.use(restify.queryParser());
-	server.use(restify.bodyParser());
-
 	// Set up routes
-	routes(server, jobs, respond);
-
-	// Start server
-	server.listen(config.web.port, function() {
-	  log.info('%s listening at %s', server.name, server.url);
-	});
+	if( config.web.api || config.web.gui ) {
+		log.info('API Enabled');
+		routes(server, jobs, respond);
+	} else {
+		log.info('API Disabled');
+	}
 
 };
 

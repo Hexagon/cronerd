@@ -71,8 +71,10 @@ function job (path) {
 		},
 
 		raiseError = function (errStr) {
+			
 			log.error('Configuration error: ' + errStr);
 			errors.push(errStr);
+
 		},
 
 		validateConfig = function () {
@@ -132,6 +134,9 @@ function job (path) {
 		finished: null,
 
 		next: null,
+
+		abort: false,
+		child: null,
 		
 		runs: 0,
 		averageRuntime: null,
@@ -150,7 +155,7 @@ function job (path) {
 		reset();
 		loadConfig();
 
-		if(self.config.enabled) {
+		if(self.config.enabled && !self.state.abort) {
 
 			// Run forever
 			if ( self.config.on.forever ) {
@@ -180,7 +185,17 @@ function job (path) {
 
 	};
 
-	this.stop = () => reset();
+	this.stop = function() {
+
+		// Make sure the job cannot restart
+		this.state.abort = true;
+
+		// Kill child process if existing
+		if( this.state.child ) this.state.child.kill();
+
+		// Reset job
+		reset();
+	};
 
 	this.execute = function ( force, starter ) {
 		
@@ -217,14 +232,13 @@ function job (path) {
 		self.state.state = 'running';
 
 		// Register process
-		child = proc(self.config.process, (exitCode, stdout, stderr, error) => {
+		self.state.child = proc(self.config.process, (exitCode, stdout, stderr, error) => {
 
 			// Reset timeouts
 			clearTimeout(timeout75Percent);
-			clearTimeout(timeout100Percent);
+			clearTimeout(timeout100Percent);	
 
-			self.state.finished = new Date();
-
+			// Calculate average run time
 			if (self.state.runs > 0) {
 				self.state.averageRuntime = ((self.state.averageRuntime * self.state.runs) + (self.state.finished - self.state.started)) / (self.state.runs + 1);
 			} else {
@@ -264,13 +278,17 @@ function job (path) {
 
 			}
 
+			// Update state
+			self.state.finished = new Date();
+			this.state.state  = 'ready';
+
+			// Store lastlog
+			self.state.logs.last = { at: this.state.started, stdout: stdout, stderr: stderr, error: error,exitCode: exitCode };
+
 			// Instantly restart, if needed
-			if( self.config.on.forever ) {
+			if( self.config.on.forever && !self.config.abort ) {
 				setTimeout(() => this.execute(false, forever), self.config.restartMs);
 			}
-
-			self.state.logs.last = { at: this.state.started, stdout: stdout, stderr: stderr, error: error,exitCode: exitCode };
-			this.state.state  = 'ready';
 
 			// Log next run
 			if( starter=='scheduler' ) {
@@ -287,6 +305,7 @@ function job (path) {
 
 		});
 
+		// Handle timeouts
 		if (self.config.process.timeout) {
 			
 			timeout75Percent = setTimeout(function () {
@@ -295,7 +314,7 @@ function job (path) {
 
 			timeout100Percent = setTimeout(function () {
 				log.warn('Job timed out, forcefully killing process.');
-				child.kill();
+				self.state.child.kill();
 			}, self.config.process.timeout * 1000);	
 
 		}

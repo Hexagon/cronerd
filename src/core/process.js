@@ -36,7 +36,7 @@ module.exports = function (config, callback) {
 			});
 
 			p.on('exit', (code) => {
-			   callback(code, stdout.join('\n'), stderr.join('\n'));
+			   callback(code, stdout, stderr);
 			});
 
 			return p;

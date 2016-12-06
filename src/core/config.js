@@ -19,7 +19,16 @@ var defaults = {
 	},
 	web: {
 		name: 'cronerd',
-		port: 8080
+		api: true,
+		gui: true,			// gui: true forces api to true
+		static: true,		// disable if serving ./public/ through another web server
+		port: 8080,
+		authentication: {
+			enable: true,
+			users: {
+		        // default - admin:admin
+			}
+		}
 	}
 };
 
