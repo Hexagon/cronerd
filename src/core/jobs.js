@@ -1,7 +1,8 @@
 var 
-	qbus = require("qbus"),
 	fs = require("fs"),
 	job = require("./job.js"),
+	events = require('events'),
+	bus = new events(),
 	inventory = {};
 
 function jobs () {
@@ -38,7 +39,7 @@ jobs.prototype.reload = function () {
 	  	if (inventory[path]) {
 	  		inventory[path].reload();
 	  	} else {
-	  		inventory[path] = new job(directory + file); 
+	  		inventory[path] = new job(directory + file, bus); 
 	  	}
 	  } );
 	});

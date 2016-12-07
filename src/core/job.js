@@ -17,7 +17,8 @@ const
 		on: {
 
 			forever: false,
-			event: null,
+
+			events: [],	/* possible events: jobname/started, jobname/finished, jobname/succeeded, jobname/failed */
 
 			cron: {
 				pattern: null,
@@ -47,7 +48,7 @@ function requireUncached(module){
     return require(module)
 }
 
-function job (path) {
+function job (path, bus) {
 
 	var 
 		self = this,
@@ -62,9 +63,16 @@ function job (path) {
 
 		reset = function () {
 			
+			// Run on event
+			if (self.config && self.config.on.events.length > 0) {
+				self.config.on.events.forEach(function (event) {
+					bus.removeListener(event, self.execute);
+				});
+			}
+
 			self.config = undefined;
 			errors = [];
-			
+
 			controller && controller.stop();
 			controller = undefined;
 
@@ -99,6 +107,11 @@ function job (path) {
 			// Check that process.mode is valid
 			if ( !child_process[self.config.process.mode] ) {
 				raiseError(self.config.process.mode + ' is not a valid entry for process.mode');
+			}
+
+			// Check that on.events is an array
+			if ( !(self.config.on.events.constructor === Array) ) {
+				raiseError('config.on.events has to be an array');
 			}
 
 			return errors.length > 0 ? false : true;
@@ -160,9 +173,10 @@ function job (path) {
 			// Run forever
 			if ( self.config.on.forever ) {
 				this.execute(false, 'forever');
+			}
 
 			// Run on cron pattern
-			} else if ( self.config.on.cron && self.config.on.cron.pattern ) {
+			if ( self.config.on.cron && self.config.on.cron.pattern ) {
 				scheduler = croner( self.config.on.cron.pattern );
 				controller = scheduler.schedule({
 						startAt: self.config.on.cron.start,
@@ -179,9 +193,17 @@ function job (path) {
 				log.info('%s: not scheduled.', self.config.name);
 
 			}
+
+			// Run on event
+			if (self.config.on.events.length > 0) {
+				self.config.on.events.forEach(function (event) {
+					log.info('%s: will start on event %s.', self.config.name, event);
+					bus.on(event, self.execute);
+				});
+			}
 		}
 
-		return this.isValid();
+		return self.isValid();
 
 	};
 
@@ -202,7 +224,7 @@ function job (path) {
 		// Run some sanity checks before forking away
 
 		// Must be a valid job
-		if ( !this.isValid() ) {
+		if ( !self.isValid() ) {
 			log.warn('%s: Job invalid, could not start.', self.config.name);
 			return false;
 		}
@@ -218,7 +240,7 @@ function job (path) {
 		}
 
 		// Cannot already be running
-		if (this.state.state == 'running') {
+		if (self.state.state == 'running') {
 			log.warn('%s: Job already running, can not start.', self.config.name);
 			return false;
 		}
@@ -230,6 +252,9 @@ function job (path) {
 		self.state.started = new Date();
 		self.state.finished = null;
 		self.state.state = 'running';
+
+		// Send start event
+		bus.emit(self.config.name + '/started');
 
 		// Register process
 		self.state.child = proc(self.config.process, (exitCode, stdout, stderr, error) => {
@@ -248,11 +273,15 @@ function job (path) {
 
 			// If error is defined, this indicates failure while forking
 			if (error) {
+				bus.emit(self.config.name + '/failed');
+
 				log.info('%s Could not start. Error: %s', self.config.name , error);
 				self.state.logs.lastFailed = { at: self.state.started, stdout: stdout, stderr: stderr, error: error && error.toString(), exitCode: exitCode };
 
 			// An exit code other than 0 indicates that the child process failed in one way or another
 			} else if (exitCode !== 0) {
+				bus.emit(self.config.name + '/failed');
+
 				if (exitCode === null ) {
 					error = "Process had to be forcefully killed.";
 				} else {
@@ -269,6 +298,7 @@ function job (path) {
 
 			// Content in stderr calls for a warning
 			} else {
+				bus.emit(self.config.name + '/succeeded');
 
 				if (stderr && stderr != "") {
 					log.warn('%s: Placed information in stderr: %s', self.config.name, stderr);
@@ -276,18 +306,22 @@ function job (path) {
 
 				log.info('%s: Finished successfully.', self.config.name);
 
+
 			}
 
 			// Update state
 			self.state.finished = new Date();
-			this.state.state  = 'ready';
+			self.state.state  = 'ready';
+			
+			// Notify that the job is done
+			bus.emit(self.config.name + '/finished');
 
 			// Store lastlog
-			self.state.logs.last = { at: this.state.started, stdout: stdout, stderr: stderr, error: error,exitCode: exitCode };
+			self.state.logs.last = { at: self.state.started, stdout: stdout, stderr: stderr, error: error,exitCode: exitCode };
 
 			// Instantly restart, if needed
 			if( self.config.on.forever && !self.config.abort ) {
-				setTimeout(() => this.execute(false, forever), self.config.restartMs);
+				setTimeout(() => self.execute(false, 'forever'), self.config.restartMs);
 			}
 
 			// Log next run

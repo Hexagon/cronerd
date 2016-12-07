@@ -1,11 +1,9 @@
 {
 	"name": "testjobb-exec",
 	"description": "Lista filer i C:\\",
-	"enabled": false,
+	"enabled": true,
 	"on": {
-		"cron": {
-			"pattern": "0 * * * * *"
-		}
+		"events": ["testjobb-spawn/finished"]
 	},
 	"process": {
 		"mode": "exec",
@@ -14,4 +12,4 @@
 			"cwd": "c:\\"
 		}
 	}
-}
+} 
